@@ -1,5 +1,54 @@
 version: '3'
 
 services:
+  frontend:
+    build: ./frontend
+    container_name: docker-test-frontend
+    command: lite-server -c ls-bs-config.json
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    networks:
+      - docker-test-network
+
   api:
     build: ./api
+    container_name: docker-test-api
+    command: npm run start
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGO_URL=mongodb://api_db:27017/docker-test-db
+    depends_on:
+      - api_db
+    networks:
+      - docker-test-network
+
+  api_db:
+    image: mongo:latest
+    container_name: docker-test-api-db
+    volumes:
+      - mongodb_api-docker-test:/data/db
+    networks:
+      - docker-test-network
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: docker-test-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf.prod:/etc/nginx/conf.d/nginx.conf
+    depends_on:
+      - frontend
+    networks:
+      - docker-test-network
+
+volumes:
+  mongodb_api-docker-test:
+
+networks:
+  docker-test-network:
+    driver: bridge
